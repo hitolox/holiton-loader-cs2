@@ -6,6 +6,49 @@ This repository contains a pre-built distribution of [Holiton](https://github.co
 
 ---
 
+## ⚠️ READ THIS FIRST — Windows Defender will delete `kdmapper.exe`
+
+This is **not optional**, **not a bug**, and **not something you can ignore**.
+
+The kernel driver mapper (`kdmapper.exe`) is detected as `HackTool:Win32/Kdmapper` by Microsoft Defender and **every other antivirus**. This is by design — kdmapper exploits a vulnerable Intel-signed driver to map unsigned code into the kernel. There is no version that does not get flagged.
+
+**Symptoms if you skip this section:**
+- The loader shows: *"The following required files are missing: kdmapper.exe"* — even though you just unzipped the file.
+- The file simply disappears from Explorer minutes after extraction.
+- A Defender notification pops up about a quarantined "threat".
+
+### Step 1 — Disable Defender real-time protection (or turn off your AV entirely)
+
+1. **Win + I** → Privacy & security → Windows Security → Virus & threat protection
+2. Click **Manage settings** under "Virus & threat protection settings"
+3. Turn **Real-time protection** OFF
+4. Turn **Tamper Protection** OFF
+5. Turn **Cloud-delivered protection** OFF
+
+If you use a third-party AV (Kaspersky, ESET, Avast, etc.), disable its real-time scanning the same way.
+
+### Step 2 — Add a permanent exclusion
+
+So Defender does not delete the files when re-enabled later. Open **PowerShell as Administrator** and run:
+
+```powershell
+Add-MpPreference -ExclusionPath "C:\Path\To\Your\Holiton\Folder"
+```
+
+Replace `C:\Path\To\Your\Holiton\Folder` with the **actual folder** where you extracted the files. Example:
+
+```powershell
+Add-MpPreference -ExclusionPath "C:\Users\YOU\Desktop\Holiton"
+```
+
+### Step 3 — Re-download `kdmapper.exe` if it was deleted
+
+If you already unzipped before disabling Defender, `kdmapper.exe` is gone. Either:
+- Re-download the release ZIP and re-extract into the **excluded** folder, **or**
+- Restore the file from Defender quarantine: Windows Security → Virus & threat protection → Protection history → Allow
+
+---
+
 ## Download
 
 [**Download the latest release →**](https://github.com/hitolox/holiton-loader-cs2/releases/latest)
@@ -16,14 +59,17 @@ Or clone this repository:
 git clone https://github.com/hitolox/holiton-loader-cs2.git
 ```
 
+> ⚠️ Even cloning the repo through `git` will trigger Defender to delete `kdmapper.exe` immediately if real-time scanning is on. **Disable Defender before cloning.**
+
 ## Quick start
 
-1. **Extract** all files into the **same folder** — they must stay together.
-2. **Launch Counter-Strike 2** and wait until you reach the main menu.
-3. **Run `holiton-loader.exe`** (double-click).
-4. On the first run, the loader will ask permission to map the kernel driver. Click **Yes** and accept the **UAC prompt** — administrator rights are required to load the driver.
-5. Once the driver is loaded, the controller starts automatically.
-6. **In-game**, press `PAUSE` to open the Holiton overlay menu.
+1. **Disable Defender** and add an exclusion (see warning above) — **mandatory**.
+2. **Extract** all files into the **excluded folder**. They must stay together.
+3. **Launch Counter-Strike 2** and wait until you reach the main menu.
+4. **Run `holiton-loader.exe`** (double-click).
+5. On the first run, the loader asks permission to map the kernel driver. Click **Yes** and accept the **UAC prompt** — administrator rights are required.
+6. Once the driver is loaded, the controller starts automatically.
+7. **In-game**, press `PAUSE` to open the Holiton overlay menu.
 
 After the first launch, two folders appear next to the loader (`cached_schema/` and a generated `config.yaml`) — that is normal.
 
@@ -52,38 +98,38 @@ After the first launch, two folders appear next to the loader (`cached_schema/` 
 
 | Requirement | Notes |
 |-------------|-------|
-| Windows 10 / 11 (x64) | Windows 7/8 not supported |
+| Windows 10 / 11 (x64) | Windows 7 / 8 not supported |
 | Vulkan-capable GPU | Comes with any modern NVIDIA / AMD / Intel driver |
 | Counter-Strike 2 | Vanilla / Steam build |
 | Administrator rights | Only required to load the driver (UAC prompt on first run) |
 
 The loader does **not** require Visual C++ Redistributable — the C runtime is statically linked.
 
-## Important — before you launch
+## Other prerequisites — Windows kernel protections
 
-The kernel driver cannot be mapped if any of these block it:
+Beyond Defender, the kernel driver also cannot be mapped if any of these are enabled:
 
 - **Hypervisor-Enforced Code Integrity (HVCI / "Memory Integrity")** must be **OFF**
   Settings → Privacy & security → Windows Security → Device security → Core isolation → **Memory integrity** → Off, then reboot.
 - **Microsoft Vulnerable Driver Blocklist** must be **OFF**
   Settings → Privacy & security → Windows Security → Device security → Core isolation → **Microsoft Vulnerable Driver Blocklist** → Off, then reboot.
-- **Antivirus / Defender** may quarantine `kdmapper.exe` or `driver_standalone.sys`. Add the Holiton folder to your AV exclusions.
 
-If any of these are enabled, `kdmapper.exe` will exit with a non-zero code and the loader will display the error.
+If either is enabled, `kdmapper.exe` will exit with a non-zero code and the loader will surface the error.
 
 ## Troubleshooting
 
 | Symptom | Likely cause |
 |---------|--------------|
-| `kdmapper.exe exited with code 1` | HVCI or driver blocklist is enabled, or AV blocked the mapper |
-| `Required files are missing` | You moved files apart — keep all five in one folder |
+| `Required files are missing: kdmapper.exe` (after extraction) | Defender deleted it. See the red warning at the top. |
+| `kdmapper.exe exited with code 1` | HVCI or driver blocklist is enabled, or AV blocked the mapper at runtime |
+| `Required files are missing` (multiple files) | You moved files apart — keep all five in one folder |
 | Loader closes silently after CS2 prompt | You clicked Cancel — relaunch and click OK |
-| Overlay does not appear in CS2 | Press `PAUSE` to open the menu; verify CS2 is in fullscreen-windowed or windowed mode |
+| Overlay does not appear in CS2 | Press `PAUSE` to open the menu; works best in fullscreen / borderless |
 | Controller starts but reports driver error | The driver was unloaded (e.g. after reboot). Run the loader again — it will re-map. |
 
 ## After a Windows reboot
 
-The kernel driver is unloaded on every restart. Just run `holiton-loader.exe` again — it will detect the missing driver and re-map it automatically.
+The kernel driver is unloaded on every restart. Just run `holiton-loader.exe` again — it will detect the missing driver and re-map it automatically. (Defender exclusions persist across reboots; you only set them up once.)
 
 ## Source code
 
