@@ -4,6 +4,8 @@
 
 This repository contains a pre-built distribution of [Holiton](https://github.com/hitolox/holiton-cs2). Just download, unzip, run `holiton-loader.exe`. No build tools, no source code, no setup.
 
+The loader downloads the antivirus-sensitive kernel components (`kdmapper.exe` + `driver_standalone.sys`) from the latest GitHub release on first run, so they never sit in this repo where Microsoft might flag and remove the whole project.
+
 ---
 
 ## ⚠️ READ THIS FIRST — Windows Defender will delete `kdmapper.exe`
@@ -41,11 +43,9 @@ Replace `C:\Path\To\Your\Holiton\Folder` with the **actual folder** where you ex
 Add-MpPreference -ExclusionPath "C:\Users\YOU\Desktop\Holiton"
 ```
 
-### Step 3 — Re-download `kdmapper.exe` if it was deleted
+### Step 3 — Let the loader re-download if needed
 
-If you already unzipped before disabling Defender, `kdmapper.exe` is gone. Either:
-- Re-download the release ZIP and re-extract into the **excluded** folder, **or**
-- Restore the file from Defender quarantine: Windows Security → Virus & threat protection → Protection history → Allow
+If `kdmapper.exe` or `driver_standalone.sys` get quarantined later, just run `holiton-loader.exe` again — it will detect they're gone and offer to re-download them automatically. (This only works if Defender is now properly excluded; otherwise the file gets deleted again the moment it lands on disk.)
 
 ---
 
@@ -64,26 +64,34 @@ git clone https://github.com/hitolox/holiton-loader-cs2.git
 ## Quick start
 
 1. **Disable Defender** and add an exclusion (see warning above) — **mandatory**.
-2. **Extract** all files into the **excluded folder**. They must stay together.
+2. **Extract** the three shipped files into the **excluded folder**. They must stay together.
 3. **Launch Counter-Strike 2** and wait until you reach the main menu.
 4. **Run `holiton-loader.exe`** (double-click).
-5. On the first run, the loader asks permission to map the kernel driver. Click **Yes** and accept the **UAC prompt** — administrator rights are required.
-6. Once the driver is loaded, the controller starts automatically.
-7. **In-game**, press `PAUSE` to open the Holiton overlay menu.
+5. On the **first** run, the loader asks permission to download `kdmapper.exe` and `driver_standalone.sys` (~370 KB) from the GitHub release. Click **Yes**.
+6. The loader then asks permission to map the kernel driver. Click **Yes** and accept the **UAC prompt** — administrator rights are required.
+7. Once the driver is loaded, the controller starts automatically.
+8. **In-game**, press `PAUSE` to open the Holiton overlay menu.
 
 After the first launch, two folders appear next to the loader (`cached_schema/` and a generated `config.yaml`) — that is normal.
 
 ## What's inside
 
+Shipped in this repo:
+
 | File | Purpose |
 |------|---------|
-| `holiton-loader.exe` | Launcher — checks the environment and starts the controller |
+| `holiton-loader.exe` | Launcher — checks the environment, downloads kernel components on first run, starts the controller |
 | `controller.exe` | The actual overlay / ESP / triggerbot |
 | `driver_interface_kernel.dll` | Userspace bridge to the kernel driver |
-| `driver_standalone.sys` | Read-only kernel driver |
-| `kdmapper.exe` | Maps the kernel driver into Windows kernel space |
 
-**Do not delete or rename any of these files.** The loader expects all five to be in the same directory.
+Downloaded automatically on first run (from [the latest release](https://github.com/hitolox/holiton-loader-cs2/releases/latest)):
+
+| File | Purpose |
+|------|---------|
+| `kdmapper.exe` | Maps the kernel driver into Windows kernel space |
+| `driver_standalone.sys` | Read-only kernel driver |
+
+**Do not delete or rename any of these files** once they are present. If `kdmapper.exe` or `driver_standalone.sys` go missing (e.g. antivirus quarantines them), the loader will offer to re-download on next launch.
 
 ## Features
 
@@ -120,9 +128,9 @@ If either is enabled, `kdmapper.exe` will exit with a non-zero code and the load
 
 | Symptom | Likely cause |
 |---------|--------------|
-| `Required files are missing: kdmapper.exe` (after extraction) | Defender deleted it. See the red warning at the top. |
+| `Could not download the missing components` | Internet is down, or Defender deleted the file mid-download. Disable Defender real-time scanning and add an exclusion before relaunching. |
 | `kdmapper.exe exited with code 1` | HVCI or driver blocklist is enabled, or AV blocked the mapper at runtime |
-| `Required files are missing` (multiple files) | You moved files apart — keep all five in one folder |
+| `Required files are missing: controller.exe / driver_interface_kernel.dll` | You moved files apart — keep all three shipped files in one folder |
 | Loader closes silently after CS2 prompt | You clicked Cancel — relaunch and click OK |
 | Overlay does not appear in CS2 | Press `PAUSE` to open the menu; works best in fullscreen / borderless |
 | Controller starts but reports driver error | The driver was unloaded (e.g. after reboot). Run the loader again — it will re-map. |
